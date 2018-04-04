@@ -48,6 +48,70 @@ initialSalary <- 30000
 # set some cbn rates (with a time dependency)
 cbnRate <- c(0, rep(runif(nyrs, min = 5, max = 15) / 100, times = 12)) / 12 
 
+# Loop style ------
+# Whilst R can be slow in loops, will code this up to get a better comparison
+microbenchmark({# Include all setup in the benchmark
+  # First initialise matrix to capture fund (efficient for R)
+  potProjection <- matrix(0, nrow = nproj, ncol = nsim)
+  potProjection[1, ] <- initialPot
+  for (isim in seq_len(nsim)) {
+    sal <- initialSalary
+    pot <- initialPot
+    cbnPot <- 0
+    for (iproj in seq_len(nproj - 1)) {
+      cbn <- cbnRate[iproj] * sal
+      cbnPot <- cbnPot * (1 + rtnsB[iproj, isim]) + cbn
+      pot <- pot * (1 + rtnsA[iproj, isim])
+      sal <- sal * (1 + salRtns[iproj, isim])
+      potProjection[iproj, isim] <- pot + cbnPot
+    }
+  }
+}, times = 10) # Run this 10 times
 
+# Vectorised approach ------
+microbenchmark({# Again, include all setup in the benchmark
+  salary <- initialSalary * salIndex
+  initParams <-
+    list(
+      startYear = 0,
+      pot = initialPot, 
+      cbnPot = 0, 
+      output = 
+        list(totalPot = initialPot)
+    )
+  stepFn <- function(stepParams) {
+    startYear = stepParams$startYear
+    projIndex <- startYear + 2
+    startYrIndex <- startYear + 1
+    startPot <- stepParams$pot
+    startCbnPot <- stepParams$cbnPot
+    stepRtns <- rtnsA[projIndex, , drop = FALSE]
+    stepCbnRtns <- rtnsB[projIndex, , drop = FALSE]
+    stepCbn <- cbnRate[projIndex] * salary[projIndex, , drop = FALSE]
+    endPot <- startPot * (1 + stepRtns)
+    endCbnPot <- startCbnPot * (1 + stepCbnRtns) + stepCbn
+    stepParams$startYear <- startYear + 1
+    stepParams$pot <- endPot
+    stepParams$cbnPot <- endCbnPot
+    stepParams$output$totalPot <- endPot + endCbnPot
+    return(stepParams)
+  }
+  funcall <- function(params, f) f(params)
+  allSimResults <-
+    purrr::accumulate(
+      rep.int(list(stepFn), nproj - 1),
+      funcall,
+      .init = initParams
+    )
+  transposedOutput <- 
+    purrr::transpose(purrr::map(allSimResults, "output"))
+  matrixList <- purrr::map(transposedOutput, ~ drop(do.call(rbind, .x)))
+  potProjection_R <- matrixList[["totalPot"]]
+}, times = 10) # Again run 10 times
 
+# gpu matrix multiplication approach ------
+microbenchmark({
+  
+  
+}, times = 1) # Only doing this once, in case of issues with gpu code
 
