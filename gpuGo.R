@@ -18,7 +18,8 @@ library(tensorflow) # for testing on gpu in paperspace
 # Simulation constants ------
 set.seed(1.32)
 nsim <- 5000 # let's go with 5000 sims...
-nproj <- 70 * 12 + 1 # monthly timesteps for 70 yrs (+1 is for time 0)
+nyrs <- 70
+nproj <- nyrs * 12 + 1 # monthly timesteps (+1 is for time 0)
 
 # Create simulated data ------
 # Use rows for time
@@ -43,6 +44,9 @@ salIndex <- apply(1 + salRtns, 2, cumprod)
 # Member details ------
 initialPot <- 100000
 initialSalary <- 30000
+
+# set some cbn rates (with a time dependency)
+cbnRate <- c(0, rep(runif(nyrs, min = 5, max = 15) / 100, times = 12)) / 12 
 
 
 

@@ -1,0 +1,33 @@
+---
+title: Technology architecture and modelling algorithms
+subtitle: Why cohesiveness is crucial (using gpus as an example)
+author: Nick Forrester
+abstract: The purpose of this note is ...
+date: "`r format(Sys.Date(), '%A, %d %B %Y')`"
+output: 
+    hymansRmdTemplates::hymans_html:
+        toc: true
+        toc_float: 
+            collabsible: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Section Title
+
+Some detail here
+
+## Figures
+
+```{r, fig.show = 'hold', echo = TRUE}
+plot(1:10)
+```
+
+
+## Citations
+```{r citations, results = 'asis'}
+# Consider including citations for packages used
+hymansRmdTemplates::printPackageCitations()
+```
