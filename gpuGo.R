@@ -114,7 +114,7 @@ microbenchmark({# Again, include all setup in the benchmark
 microbenchmark({
 #system.time({  
   gRtnIndicesA <- tf$constant(rtnIndicesA)
-  #gRtnIndicesB <- tf$constant(rtnIndicesB)
+  gRtnIndicesB <- tf$constant(rtnIndicesB)
   gSal <- tf$constant(initialSalary * salIndex)
   gCbns <- tf$constant(diag(cbnRate)) 
   cbns <- gCbns %*% gSal

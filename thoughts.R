@@ -29,3 +29,8 @@ x <- c(0, 1, 1)
 y <- crossprod(cbnSim, x)
 
 z <- y %*% rtnIndices
+
+
+
+
+
