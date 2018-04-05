@@ -37,43 +37,11 @@ rtnList <-
 
 # bind by rows to form large matrix for gpu use
 rtnMatrix <- do.call(rbind, rtnList)
-vclRtns <- gpuR::vclMatrix(rtnMatrix)
 
 # need a function to create appropriate weights matrix
 createWtMatrix <- function(wtsList, nrows) {
   do.call(cbind, purrr::map(wtsList, ~diag(.x, nrow = nrows)))
 }
-
-# try 3 versions
-
-# Current approach using reduce
-microbenchmark({
-  purrrRtn <- 
-    purrr::reduce(
-      purrr::imap(weights, 
-        ~diag(.x, nproj) %*% rtnList[[.y]]
-      ), `+`
-    )
-})
-
-# R only approach using matrices
-microbenchmark({
-  wtsMatrix <- createWtMatrix(weights, nproj)
-  rMatrixRtn <- wtsMatrix %*% rtnMatrix
-})
-all.equal(purrrRtn, rMatrixRtn)
-
-# gpu approach using matrices
-microbenchmark({
-  wtsMatrix <- createWtMatrix(weights, nproj)
-  vclWts <- gpuR::vclMatrix(wtsMatrix)
-  gpuMatrixRtn <- vclWts %*% vclRtns
-})
-all.equal(purrrRtn, gpuMatrixRtn[])
-
-# Writing to gpu within loop slows down everything massively. 
-
-# What about creating all wts outside of a loop...
 
 # create random wts
 createRndWts <- function(pfolioNames, assetNames, nproj) {
@@ -84,7 +52,6 @@ pfolios <- letters[1:2]
 rndWts <- createRndWts(pfolios, names(weights), nproj)
 rndWtsMatrix <- 
   do.call(rbind, purrr::map(rndWts, createWtMatrix, nrows = nproj))
-vclRndWts <- gpuR::vclMatrix(rndWtsMatrix)
 
 # R only approach using purrr
 microbenchmark({
@@ -104,6 +71,8 @@ microbenchmark({
 
 # gpu approach using matrices
 microbenchmark({
+  vclRtns <- gpuR::vclMatrix(rtnMatrix)
+  vclRndWts <- gpuR::vclMatrix(rndWtsMatrix)
   gpuMatrixAllRtns <- vclRndWts %*% vclRtns
 }, times = 1)
 all.equal(rMatrixAllRtns, gpuMatrixAllRtns[])
