@@ -12,7 +12,7 @@
 
 library(microbenchmark) # to benchmark times
 library(purrr) # for R-based loops via map & accumulate
-library(gpuR) # to access gpu on laptop
+#library(gpuR) # to access gpu on laptop
 library(tensorflow) # for testing on gpu in paperspace
 
 # Simulation constants ------
@@ -109,11 +109,18 @@ microbenchmark({# Again, include all setup in the benchmark
   potProjection_R <- matrixList[["totalPot"]]
 }, times = 10) # Again run 10 times
 
-# gpu matrix multiplication approach ------
+# tensorflow gpu matrix multiplication approach ------
+
 microbenchmark({
+#system.time({  
+  gRtnIndicesA <- tf$constant(rtnIndicesA)
+  #gRtnIndicesB <- tf$constant(rtnIndicesB)
+  gSal <- tf$constant(initialSalary * salIndex)
+  gCbns <- tf$constant(diag(cbnRate)) 
+  cbns <- gCbns %*% gSal
+  adjCbns <- cbns / rtnIndicesB
+  pot <- initialPot * rtnIndicesA
   
-  
-  
-  
+#})
 }, times = 1) # Only doing this once, in case of issues with gpu code
 

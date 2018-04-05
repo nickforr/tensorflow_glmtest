@@ -3,9 +3,10 @@
 library(gpuR)
 library(microbenchmark)
 library(purrr)
+library(tensorflow)
 
 nsim <- 5000
-nproj <- 71 * 12
+nproj <- 71 #* 12
 
 set.seed(1.23)
 
@@ -48,7 +49,7 @@ createRndWts <- function(pfolioNames, assetNames, nproj) {
   purrr::map(pfolioNames, ~purrr::map(assetNames, ~runif(1)))
 }
 
-pfolios <- letters[1:2]
+pfolios <- letters[1:1]
 rndWts <- createRndWts(pfolios, names(weights), nproj)
 rndWtsMatrix <- 
   do.call(rbind, purrr::map(rndWts, createWtMatrix, nrows = nproj))
@@ -73,12 +74,28 @@ microbenchmark({
 microbenchmark({
   vclRtns <- gpuR::vclMatrix(rtnMatrix)
   vclRndWts <- gpuR::vclMatrix(rndWtsMatrix)
-  gpuMatrixAllRtns <- vclRndWts %*% vclRtns
+  vclMatrixAllRtns <- vclRndWts %*% vclRtns
+}, times = 1)
+all.equal(rMatrixAllRtns, vclMatrixAllRtns[])
+
+# gpu approach using matrices in memory
+microbenchmark({
+  gpuRtns <- gpuR::gpuMatrix(rtnMatrix)
+  gpuRndWts <- gpuR::gpuMatrix(rndWtsMatrix)
+  gpuMatrixAllRtns <- gpuRndWts %*% gpuRtns
 }, times = 1)
 all.equal(rMatrixAllRtns, gpuMatrixAllRtns[])
 
 
-
+# gpu approach using tensorflow
+sess <- tf$Session()
+microbenchmark({
+  tfRtns <- tf$constant(rtnMatrix)
+  tfRndWts <- tf$constant(rndWtsMatrix)
+  tfMatrixAllRtns <- tf$matmul(tfRndWts, tfRtns)
+  tfResult = sess$run(tfMatrixAllRtns)
+}, times = 1)
+sess$close()
 
 # Also consider discounting cashflows?
 
