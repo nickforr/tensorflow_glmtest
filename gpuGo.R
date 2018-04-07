@@ -13,7 +13,7 @@
 library(microbenchmark) # to benchmark times
 library(purrr) # for R-based loops via map & accumulate
 #library(gpuR) # to access gpu on laptop
-library(tensorflow) # for testing on gpu in paperspace
+#library(tensorflow) # for testing on gpu in paperspace
 
 # Simulation constants ------
 set.seed(1.32)
@@ -58,7 +58,7 @@ microbenchmark({# Include all setup in the benchmark
     sal <- initialSalary
     pot <- initialPot
     cbnPot <- 0
-    for (iproj in seq_len(nproj - 1)) {
+    for (iproj in (1 + seq_len(nproj - 1))) {
       cbn <- cbnRate[iproj] * sal
       cbnPot <- cbnPot * (1 + rtnsB[iproj, isim]) + cbn
       pot <- pot * (1 + rtnsA[iproj, isim])
@@ -87,7 +87,7 @@ microbenchmark({# Again, include all setup in the benchmark
     startCbnPot <- stepParams$cbnPot
     stepRtns <- rtnsA[projIndex, , drop = FALSE]
     stepCbnRtns <- rtnsB[projIndex, , drop = FALSE]
-    stepCbn <- cbnRate[projIndex] * salary[projIndex, , drop = FALSE]
+    stepCbn <- cbnRate[projIndex] * salary[projIndex - 1, , drop = FALSE]
     endPot <- startPot * (1 + stepRtns)
     endCbnPot <- startCbnPot * (1 + stepCbnRtns) + stepCbn
     stepParams$startYear <- startYear + 1
@@ -109,18 +109,20 @@ microbenchmark({# Again, include all setup in the benchmark
   potProjection_R <- matrixList[["totalPot"]]
 }, times = 10) # Again run 10 times
 
-# tensorflow gpu matrix multiplication approach ------
-
+# nvblas gpu matrix multiplication approach ------
+# Code is just plain R (with algorithm targeting matrix multiplication)
+# An R build with nvblas should use gpu automatically where possible
 microbenchmark({
-#system.time({  
-  gRtnIndicesA <- tf$constant(rtnIndicesA)
-  gRtnIndicesB <- tf$constant(rtnIndicesB)
-  gSal <- tf$constant(initialSalary * salIndex)
-  gCbns <- tf$constant(diag(cbnRate)) 
-  cbns <- gCbns %*% gSal
-  adjCbns <- cbns / rtnIndicesB
-  pot <- initialPot * rtnIndicesA
-  
-#})
+  adjSalIndex <- initialSalary * salIndex / rtnIndicesB
+  potProjection_matrix <- initialPot * rtnIndicesA
+  tempRtnIndicesB <- rtnIndicesB # consider removing...
+  tempRtnIndicesB[1, ] <- 0
+  for (iproj in (1 + seq_len(nproj - 1))) {
+    cbn <- cbnRate[iproj] * adjSalIndex[iproj - 1, ]
+    diagCbn <- diag(cbn)
+    tempRtnIndicesB[iproj, ] <- 0
+    tempResult <- tempRtnIndicesB %*% diagCbn
+    potProjection_matrix <- potProjection_matrix + tempResult
+  }
 }, times = 1) # Only doing this once, in case of issues with gpu code
 
