@@ -76,7 +76,8 @@ priceAnnuityPayments <- function(paymentProbsA, yieldData, gteeYrs = 0,
     yieldSims <- yieldData[i, ]
     logYields <- log(1 + yieldSims)
     maturities <- -(seq_along(combinedProbs) - 1 + timingAdjustment)
-    projYields <- exp(tcrossprod(logYields, maturities))
+    a <- tcrossprod(logYields, maturities)
+    projYields <- exp(a)
     price <- projYields %*% combinedProbs
     annuityPrices[i, ] <- price
   }
