@@ -1,23 +1,20 @@
 
 # Introduction ------
+
 # Examples below set out how we might re-design the go algorithm to allow for
 # matrix multiplication via gpus
 
-# Libraries used ------
-# Note tensorflow won't use gpus unless specifically installed to do so (which
-# is unlikely to be the case on a laptop (see
-# https://tensorflow.rstudio.com/tensorflow/articles/installation_gpu.html).
-# This has been included so that I can test this on a paperspace gpu machine
-# (see www.paperspace.com)
+# Having played about with gpuR and tensorflow, easiest way to leverage gpus is
+# through use of nvblas libraries which doesn't require any changes to R code
+# (just to the way R is configured).
 
+# Libraries used ------
 library(microbenchmark) # to benchmark times
 library(purrr) # for R-based loops via map & accumulate
-#library(gpuR) # to access gpu on laptop
-#library(tensorflow) # for testing on gpu in paperspace
 
 # Simulation constants ------
 set.seed(1.32)
-nsim <- 5000 # let's go with 5000 sims...
+nsim <- 10 #5000 # let's go with 5000 sims...
 nyrs <- 70
 nproj <- nyrs * 12 + 1 # monthly timesteps (+1 is for time 0)
 
@@ -116,13 +113,12 @@ microbenchmark({
   adjSalIndex <- initialSalary * salIndex / rtnIndicesB
   potProjection_matrix <- initialPot * rtnIndicesA
   tempRtnIndicesB <- rtnIndicesB # consider removing...
-  tempRtnIndicesB[1, ] <- 0
   for (iproj in (1 + seq_len(nproj - 1))) {
     cbn <- cbnRate[iproj] * adjSalIndex[iproj - 1, ]
     diagCbn <- diag(cbn)
-    tempRtnIndicesB[iproj, ] <- 0
     tempResult <- tempRtnIndicesB %*% diagCbn
     potProjection_matrix <- potProjection_matrix + tempResult
+    tempRtnIndicesB[iproj - 1, ] <- 0
   }
 }, times = 1) # Only doing this once, in case of issues with gpu code
 
