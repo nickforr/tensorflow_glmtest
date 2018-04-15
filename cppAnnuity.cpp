@@ -1,7 +1,6 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
-
 // [[Rcpp::export]]
 NumericMatrix priceAnnuityCpp(NumericMatrix yieldData, 
                               NumericVector paymentProbs) {
@@ -17,16 +16,15 @@ NumericMatrix priceAnnuityCpp(NumericMatrix yieldData,
     if (iproj == 0) {
       loopProbs = paymentProbs;
     } else {
-      loopProbs = tail(paymentProbs, -iproj) / paymentProbs[iproj - 1];
+      loopProbs = tail(paymentProbs, -iproj) / paymentProbs[iproj];
     }
     
-    for (int iiproj = 0; iiproj < loopProbs.size(); iiproj++) {
-      for (int isim = 0; isim < nsim; isim++) {
-        double yld = yieldData(iproj, isim);
-        double maturity = (double) iiproj;
+    for (int isim = 0; isim < nsim; isim++) {
+      double yld = yieldData(iproj, isim);
+      for (int iiproj = 0; iiproj < loopProbs.size(); iiproj++) {
         annuityPrice(iproj, isim) = 
           annuityPrice(iproj, isim) + 
-          loopProbs[iiproj] * pow(1 + yld, -maturity);  
+          loopProbs[iiproj] * std::pow(1.0 + yld, -iiproj);  
       }
     }
   }
