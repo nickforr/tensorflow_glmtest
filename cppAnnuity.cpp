@@ -4,8 +4,7 @@ using namespace Rcpp;
 
 // [[Rcpp::export]]
 NumericMatrix priceAnnuityCpp(NumericMatrix yieldData, 
-  NumericVector paymentProbs, 
-  NumericVector timingAdjustment) {
+                              NumericVector paymentProbs) {
   
   int nproj = yieldData.nrow();
   int nsim = yieldData.ncol();
@@ -24,7 +23,7 @@ NumericMatrix priceAnnuityCpp(NumericMatrix yieldData,
     for (int iiproj = 0; iiproj < loopProbs.size(); iiproj++) {
       for (int isim = 0; isim < nsim; isim++) {
         double yld = yieldData(iproj, isim);
-        double maturity = iiproj + timingAdjustment(0);
+        double maturity = (double) iiproj;
         annuityPrice(iproj, isim) = 
           annuityPrice(iproj, isim) + 
           loopProbs[iiproj] * pow(1 + yld, -maturity);  
