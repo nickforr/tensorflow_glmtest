@@ -12,17 +12,19 @@ arma::mat armaPriceAnnuity(const arma::mat& yieldData, const arma::vec& paymentP
   
   for (int iproj = 0; iproj < nproj; ++iproj) {
     
+    arma::vec combinedProbs(nproj - iproj);
+    
     if (iproj == 0) {
-      arma::vec combinedProbs = paymentProbs;
+      combinedProbs = paymentProbs;
     } else {
-      arma::vec combinedProbs = 
+      combinedProbs = 
         paymentProbs.subvec(iproj, nproj - 1) / paymentProbs[iproj];
     }
     
     arma::vec logYields = arma::log(1.0 + yieldData.row(iproj));
-    arma::vec maturities = 
-      -arma::cumsum(arma::vec(nproj - 1, arma::fill::ones));
-    arma::mat projYields = arma::exp(logYields * arma::trans(maturities));
+    arma::rowvec maturities = 
+      -arma::cumsum(arma::rowvec(nproj, arma::fill::ones));
+    arma::mat projYields = arma::exp(logYields * maturities);
     arma::vec price = projYields * combinedProbs;
     
     annuityPrices.row(iproj) = price;

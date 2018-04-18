@@ -7,6 +7,7 @@
 # Libraries used ------
 library(microbenchmark) # to benchmark times
 library(Rcpp) # integrating C++ and R
+library(RcppArmadillo) # using C++ Armadillo linear algebra library
 
 # Simulation constants ------
 set.seed(1.32)
@@ -53,6 +54,13 @@ microbenchmark::microbenchmark({
 }, times = 50)
 # Check this equals initial R implementation
 all.equal(annuityPrices_R, annuityPrices_cpp)
+
+Rcpp::sourceCpp("cppArmaAnnuity.cpp")
+microbenchmark::microbenchmark({
+  annuityPrices_cppArma <- armaPriceAnnuity(yieldData, paymentProbs)
+}, times = 50)
+# Check this equals initial R implementation
+all.equal(annuityPrices_R, annuityPrices_cppArma)
 
 # Conclusions ------
 
