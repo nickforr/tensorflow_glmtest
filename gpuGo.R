@@ -8,13 +8,22 @@
 # through use of nvblas libraries which doesn't require any changes to R code
 # (just to the way R is configured).
 
+# UPDATE: having played about with the algorithm, it's just too contrived to try
+# and turn this into matrix algebra (unless we were just interested in the
+# projected assets at retirement date - that would be possible to achieve fairly
+# straightforwardly, just not likely to be of much use).
+
+# The main purpose of this script now is to highlight the potential advantage of
+# using Rcpp to speed up the main loop. Very roughly, this halves the time of a
+# reasonably fast (vectorised) R implementation.
+
 # Libraries used ------
 library(microbenchmark) # to benchmark times
 library(purrr) # for R-based loops via map & accumulate
 
 # Simulation constants ------
 set.seed(1.32)
-nsim <- 10 #5000 # let's go with 5000 sims...
+nsim <- 5000 # let's go with 5000 sims...
 nyrs <- 70
 nproj <- nyrs * 12 + 1 # monthly timesteps (+1 is for time 0)
 
@@ -63,7 +72,7 @@ microbenchmark({# Include all setup in the benchmark
       potProjection[iproj, isim] <- pot + cbnPot
     }
   }
-}, times = 10) # Run this 10 times
+}, times = 50) # Run this 50 times
 
 # Vectorised approach ------
 microbenchmark({# Again, include all setup in the benchmark
@@ -103,22 +112,54 @@ microbenchmark({# Again, include all setup in the benchmark
   transposedOutput <- 
     purrr::transpose(purrr::map(allSimResults, "output"))
   matrixList <- purrr::map(transposedOutput, ~ drop(do.call(rbind, .x)))
-  potProjection_R <- matrixList[["totalPot"]]
-}, times = 10) # Again run 10 times
+  potProjection_purrr <- matrixList[["totalPot"]]
+}, times = 50) # Again run 50 times
+# Check this equals initial R implementation
+all.equal(potProjection_purrr, potProjection)
 
 # nvblas gpu matrix multiplication approach ------
 # Code is just plain R (with algorithm targeting matrix multiplication)
 # An R build with nvblas should use gpu automatically where possible
-microbenchmark({
-  adjSalIndex <- initialSalary * salIndex / rtnIndicesB
-  potProjection_matrix <- initialPot * rtnIndicesA
-  tempRtnIndicesB <- rtnIndicesB # consider removing...
-  for (iproj in (1 + seq_len(nproj - 1))) {
-    cbn <- cbnRate[iproj] * adjSalIndex[iproj - 1, ]
-    diagCbn <- diag(cbn)
-    tempResult <- tempRtnIndicesB %*% diagCbn
-    potProjection_matrix <- potProjection_matrix + tempResult
-    tempRtnIndicesB[iproj - 1, ] <- 0
-  }
-}, times = 1) # Only doing this once, in case of issues with gpu code
+
+# Just too tricky to get this to work...
+# microbenchmark({
+#   adjSalIndex <- initialSalary * salIndex / rtnIndicesB
+#   potProjection_matrix <- initialPot * rtnIndicesA
+#   tempRtnIndicesB <- rtnIndicesB # consider removing...
+#   for (iproj in (1 + seq_len(nproj - 1))) {
+#     cbn <- cbnRate[iproj] * adjSalIndex[iproj - 1, ]
+#     diagCbn <- diag(cbn)
+#     tempResult <- tempRtnIndicesB %*% diagCbn
+#     potProjection_matrix <- potProjection_matrix + tempResult
+#     tempRtnIndicesB[iproj - 1, ] <- 0
+#   }
+# }, times = 1) # Only doing this once, in case of issues with gpu code
+
+# Rcpp approach ------
+
+# How about using cpp to carry out the loops...
+
+Rcpp::sourceCpp("goProjectCbns.cpp")
+microbenchmark::microbenchmark({
+  salProjection <- initialSalary * salIndex
+  potProjection_cpp <- 
+    initialPot * rtnIndicesA + goProjectCbnsCpp(cbnRate, salProjection, rtnsB)
+}, times = 50)
+# Check this equals initial R implementation
+all.equal(potProjection_cpp, potProjection)
+
+# Conclusions ------
+
+# Based on initial tests, I was getting c. 1.3 seconds for 5000 sims and 70
+# years of monthly projections using a crude R loop.
+
+# Taking advantage of the accumulate function in the purrr package to abstract
+# away some of the loops brought ths down to c. 450 milliseconds (albeit at the
+# expense of a slightly more opaque algorithm).
+
+# Finally, making use of Rcpp more than halved the time of the purrr approach to
+# c. 200 milliseconds. And even with the use of Rcpp requiring a separate
+# script, the overally algorithm was just as clean as the first implementation.
+
+
 
