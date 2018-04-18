@@ -19,7 +19,7 @@ nyrs <- 71
 yieldData <- matrix(rnorm(nyrs * nsim, mean = 0.03, sd = 0.02), nrow = nyrs)
 paymentProbs <- rev(seq_len(nyrs)) / nyrs
 
-# R approach (refactored version from mortr)
+# R approach (refactored version from mortr)
 priceAnnuity_R <- function(yieldData, paymentProbs) {
   
   annuityPrices <- yieldData * 0 #use yieldData to get 0 matrix of right dims
@@ -52,14 +52,14 @@ Rcpp::sourceCpp("cppAnnuity.cpp")
 microbenchmark::microbenchmark({
   annuityPrices_cpp <- priceAnnuityCpp(yieldData, paymentProbs)
 }, times = 50)
-# Check this equals initial R implementation
+# Check this equals initial R implementation
 all.equal(annuityPrices_R, annuityPrices_cpp)
 
 Rcpp::sourceCpp("cppArmaAnnuity.cpp")
 microbenchmark::microbenchmark({
   annuityPrices_cppArma <- armaPriceAnnuity(yieldData, paymentProbs)
 }, times = 50)
-# Check this equals initial R implementation
+# Check this equals initial R implementation
 all.equal(annuityPrices_R, annuityPrices_cppArma)
 
 # Conclusions ------

@@ -3,7 +3,7 @@
 
 
 // [[Rcpp::export]]
-arma::mat armaPriceAnnuity(const arma::mat& yieldData, const arma::vec& paymentProbs) {
+arma::mat armaPriceAnnuity(const arma::mat& yieldData, const arma::rowvec& paymentProbs) {
   
   int nproj = yieldData.n_rows;
   int nsim = yieldData.n_cols;
@@ -12,7 +12,7 @@ arma::mat armaPriceAnnuity(const arma::mat& yieldData, const arma::vec& paymentP
   
   for (int iproj = 0; iproj < nproj; ++iproj) {
     
-    arma::vec combinedProbs(nproj - iproj);
+    arma::rowvec combinedProbs(nproj - iproj);
     
     if (iproj == 0) {
       combinedProbs = paymentProbs;
@@ -21,11 +21,11 @@ arma::mat armaPriceAnnuity(const arma::mat& yieldData, const arma::vec& paymentP
         paymentProbs.subvec(iproj, nproj - 1) / paymentProbs[iproj];
     }
     
-    arma::vec logYields = arma::log(1.0 + yieldData.row(iproj));
-    arma::rowvec maturities = 
-      -arma::cumsum(arma::rowvec(nproj, arma::fill::ones));
-    arma::mat projYields = arma::exp(logYields * maturities);
-    arma::vec price = projYields * combinedProbs;
+    arma::rowvec logYields = arma::log(1.0 + yieldData.row(iproj));
+    arma::vec maturities = 
+      -(arma::cumsum(arma::vec(nproj - iproj, arma::fill::ones)) - 1.0);
+    arma::mat projYields = arma::exp(maturities * logYields);
+    arma::rowvec price = combinedProbs * projYields;
     
     annuityPrices.row(iproj) = price;
   }
