@@ -55,6 +55,8 @@ microbenchmark::microbenchmark({
 # Check this equals initial R implementation
 all.equal(annuityPrices_R, annuityPrices_cpp)
 
+Sys.setenv("PKG_CXXFLAgs"="-I/usr/local/cuda-8.0/include")
+Sys.setenv("PKG_LIBS"="-L/usr/local/cuda-8.0/lib64 -lnvblas")
 Rcpp::sourceCpp("cppArmaAnnuity.cpp")
 microbenchmark::microbenchmark({
   annuityPrices_cppArma <- armaPriceAnnuity(yieldData, paymentProbs)
