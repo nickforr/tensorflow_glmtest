@@ -17,13 +17,8 @@ tempsavetime <- paste0(cputypeforsavename, "_", ncflowGroups, "_timing.RDS")
 discFactors <- matrix(runif(nsim * nproj * maxMaturity), ncol = maxMaturity)
 allCflows <- matrix(runif(maxMaturity * ncflowGroups), nrow = maxMaturity)
 
-temptime <- 
-  microbenchmark::microbenchmark({
+microbenchmark::microbenchmark({
     pvCflows <- discFactors %*% allCflows
   }, times = 1)
-temptime
 pvCflows[1:10, 1:10]
-saveRDS(pvCflows, tempsavename)
-saveRDS(temptime, tempsavetime)
 
-# Basic test using nvblas is that a run of 3 seconds falls to 70 milliseconds under a gpu
