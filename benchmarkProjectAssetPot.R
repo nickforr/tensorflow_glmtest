@@ -1,6 +1,7 @@
 
 library(purrr)
 library(microbenchmark)
+library(Rcpp)
 source("projectAssetPot.R")
 
 rtns <- # Monthly
