@@ -10,9 +10,9 @@ rtns <- # Monthly
     nrow = 12 * 100)
 
 initialPot <- 100
-flows <- -5 / 12 # monthly
+flows <- matrix(-5 / 12, nrow = 1, ncol = 10000) # monthly
 flowTiming <- 0.5
-adjustments <- 3 / 12 # monthly
+adjustments <- matrix(3 / 12, nrow = 1, ncol = 10000) # monthly
 adjustmentsTiming <- 1
 outputAssetOnly = FALSE
 
@@ -20,8 +20,9 @@ outputAssetOnly = FALSE
 microbenchmark({
   rOutput <- 
     projectAssetPot(
-      rtns = rtns, initialPot = initialPot, flows = flows, flowTiming = 0.5, 
-      adjustments = NULL, adjustmentsTiming = 1, outputAssetOnly = TRUE, 
+      rtns = rtns, initialPot = initialPot, flows = flows, 
+      flowTiming = flowTiming, adjustments = adjustments, 
+      adjustmentsTiming = adjustmentsTiming, outputAssetOnly = TRUE, 
       useCpp = FALSE)
 }, times = 100, unit = "ms")
 
@@ -29,8 +30,9 @@ microbenchmark({
 microbenchmark({
   cppOutput <- 
     projectAssetPot(
-      rtns = rtns, initialPot = initialPot, flows = flows, flowTiming = 0.5, 
-      adjustments = NULL, adjustmentsTiming = 1, outputAssetOnly = TRUE, 
+      rtns = rtns, initialPot = initialPot, flows = flows, 
+      flowTiming = flowTiming, adjustments = adjustments, 
+      adjustmentsTiming = adjustmentsTiming, outputAssetOnly = TRUE, 
       useCpp = TRUE)
 }, times = 100, unit = "ms")
 

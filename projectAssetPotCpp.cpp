@@ -5,9 +5,9 @@ using namespace Rcpp;
 Rcpp::List projectPot_cpp(
     Rcpp::NumericVector pot, 
     Rcpp::NumericMatrix rtns, 
-    Rcpp::NumericVector flows, 
+    Rcpp::NumericMatrix flows, 
     double flowTiming, 
-    Rcpp::NumericVector fullAdjustments, 
+    Rcpp::NumericMatrix fullAdjustments, 
     double adjustmentsTiming) {
   
   const unsigned int nsim = rtns.ncol();
