@@ -66,9 +66,9 @@
 #' assets <- projectAssetPot(rtns, initialPot, flows)
 projectAssetPot <- function(rtns, initialPot = 0, flows = 0, flowTiming = 0.5, 
                             adjustments = NULL, adjustmentsTiming = 1, 
-                            outputAssetOnly = TRUE) {
+                            outputAssetOnly = TRUE, useCpp = FALSE) {
   
-  validateSimMatrixArguments(rtns)
+  #validateSimMatrixArguments(rtns)
   nsim <- ncol(rtns)
   nproj <- nrow(rtns) - 1
   
@@ -106,6 +106,30 @@ projectAssetPot <- function(rtns, initialPot = 0, flows = 0, flowTiming = 0.5,
     stop("adjustmentsTiming must be between 0 and 1, inclusive")
   }
   
+  matrixList <- 
+    if (useCpp) {
+      stop("no cpp yet")
+      projectPot_cpp()
+    } else {
+      projectPot_r(
+        pot, rtns, nsim, nproj, 
+        fullFlows, flowTiming, 
+        fullAdjustments, adjustmentsTiming)
+    }
+  
+  if (outputAssetOnly) {
+    matrixList[["assets"]]
+  } else {
+    matrixList
+  }
+}
+
+
+Rcpp::sourceCpp("projectAssetPotCpp.cpp")
+
+projectPot_r <- function(pot, rtns, nsim, nproj, fullFlows, flowTiming, 
+                          fullAdjustments, adjustmentsTiming) {
+  
   #Set initial parameters
   initParams <-
     list(
@@ -127,7 +151,7 @@ projectAssetPot <- function(rtns, initialPot = 0, flows = 0, flowTiming = 0.5,
     
     #Returns
     stepRtns <- rtns[projIndex, , drop = FALSE]
-  
+    
     #flows
     stepFlow <- 
       if (is.null(dim(fullFlows))) {
@@ -163,7 +187,7 @@ projectAssetPot <- function(rtns, initialPot = 0, flows = 0, flowTiming = 0.5,
       (!flowNegative) * stepFlow
     
     assetsPostFlow <- assetsPreFlow + flowsPaid
-  
+    
     endAssets <- 
       if (adjustmentsTiming < flowTiming) {
         assetsPostFlow * (1 + stepRtns) ^ (1 - flowTiming)
@@ -193,11 +217,47 @@ projectAssetPot <- function(rtns, initialPot = 0, flows = 0, flowTiming = 0.5,
   
   #And then create list of matrices
   #Drop is there in case single element output is included
-  matrixList <- purrr::map(transposedOutput, ~ drop(do.call(rbind, .x)))
+  purrr::map(transposedOutput, ~ drop(do.call(rbind, .x)))
   
-  if (outputAssetOnly) {
-    matrixList[["assets"]]
+}
+
+
+
+# Extend weights & flows fn
+extendWtsAndFlows <- function(x, totalRows, addZeroFirst = TRUE) {
+  
+  if (is.null(x)) return(NULL)
+  if (totalRows <= 0) stop("totalRows must be greater than 0")
+  
+  indices <-
+    if (addZeroFirst) {
+      seq_len(totalRows - 1) #1 less because start with 0 element
+    } else {
+      seq_len(totalRows) #not adding 0 element
+    }
+  xLength <- 
+    if (is.matrix(x)) {
+      nrow(x)
+    } else {
+      length(x) 
+    }
+  interimResult <-
+    if (is.matrix(x)) {
+      x[pmin.int(indices, xLength), , drop = FALSE]
+    } else {
+      x[pmin.int(indices, xLength)]
+    }
+  if (addZeroFirst) {
+    if (is.matrix(x)) {
+      rbind(
+        rep.int(0, ncol(x)),
+        interimResult
+      )
+    } else {
+      c(0, interimResult)
+    }
   } else {
-    matrixList
+    interimResult
   }
 }
+
