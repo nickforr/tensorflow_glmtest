@@ -109,7 +109,9 @@ projectAssetPot <- function(rtns, initialPot = 0, flows = 0, flowTiming = 0.5,
   matrixList <- 
     if (useCpp) {
       stop("no cpp yet")
-      projectPot_cpp()
+      projectPot_cpp(
+        pot, rtns, fullFlows, flowTiming, 
+        fullAdjustments, adjustmentsTiming)
     } else {
       projectPot_r(
         pot, rtns, nsim, nproj, 
