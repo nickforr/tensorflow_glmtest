@@ -16,10 +16,13 @@ Rcpp::List projectPot_cpp(
   Rcpp::NumericMatrix assets(nproj, nsim);
   Rcpp::NumericMatrix flowsPaid(nproj, nsim);
   Rcpp::NumericVector assetsPreFlow(nsim);
+  Rcpp::NumericVector assetsPreFlowFloored(nsim);
+  Rcpp::LogicalVector flowNegative(nsim);
+  Rcpp::NumericVector assetsPostFlow(nsim);
   
   assets(0, _) = pot;
   
-  for (int iproj = 1; iproj < nproj; ++iproj) {
+  for (unsigned int iproj = 1; iproj < nproj; ++iproj) {
     
     if (adjustmentsTiming < flowTiming) {
       assetsPreFlow = 
@@ -32,33 +35,35 @@ Rcpp::List projectPot_cpp(
         assets(iproj - 1, _) * 
         Rcpp::pow(1.0 + rtns(iproj, _), flowTiming); 
     }
+    // Floor assets at zero
+    assetsPreFlowFloored = Rcpp::pmax(assetsPreFlow, 0.0);
     
-// Create logical vector based on whether assets have run out or not    
-    Rcpp::LogicalVector assetsNotRunOut = assetsPreFlow > 0.0;
-        
-// Create logical vector based on whether flows are +ve or -ve
-    Rcpp::LogicalVector flowNegative = flows(iproj, _) < 0;
-          
-          flowsPaid <- 
-            flowNegative * -pmin(assetsNotRunOut * assetsPreFlow, -stepFlow) + 
-            (!flowNegative) * stepFlow
-          
-          assetsPostFlow <- assetsPreFlow + flowsPaid
-          
-          endAssets <- 
-            if (adjustmentsTiming < flowTiming) {
-              assetsPostFlow * (1 + stepRtns) ^ (1 - flowTiming)
-            } else {
-              (assetsPostFlow * (1 + stepRtns) ^ (adjustmentsTiming - flowTiming)
-              + stepAdjustments) * (1 + stepRtns) ^ (1 - adjustmentsTiming)
-            }
+    // Create logical vector based on whether flows are +ve or -ve
+    flowNegative = flows(iproj, _) < 0;
     
-    flowsPaid(iproj, _) = 
-      pmin(potSize(iproj - 1, _), targetRegularFlowsOut(iproj, _));
+    for (unsigned int isim = 0; isim < nsim; ++isim) {
+      
+      if (flowNegative[isim]) {
+        flowsPaid(iproj, isim) = 
+          -std::min(assetsPreFlowFloored[isim], -flows(iproj, isim));
+      } else {
+        flowsPaid(iproj, isim) = flows(iproj, isim);
+      }
+    }
     
-    potSize(iproj, _) = 
-      pmax(0.0, potSize(iproj - 1, _) - regularFlowsPaid(iproj, _)) * 
-      (1.0 + rtns(iproj, _));
+    assetsPostFlow = assetsPreFlowFloored + flowsPaid(iproj, _);
+    
+    if (adjustmentsTiming < flowTiming) {
+      assets(iproj, _) = 
+        assetsPostFlow * 
+        Rcpp::pow(1.0 + rtns(iproj, _), 1.0 - flowTiming);
+    } else {
+      assets(iproj, _) = 
+        (assetsPostFlow * 
+        Rcpp::pow(1.0 + rtns(iproj, _), adjustmentsTiming - flowTiming)+ 
+        fullAdjustments(iproj, _)) * 
+        Rcpp::pow(1.0 + rtns(iproj, _), 1.0 - adjustmentsTiming); 
+    }
   }
   return Rcpp::List::create(
     Rcpp::Named("pot") = assets,
@@ -74,9 +79,10 @@ Rcpp::List projectPot_cpp(
 /*** R
 rtns <- matrix(rnorm(100 * 10, mean = 0.04, sd = 0.1), nrow = 10)
 pot <- rep.int(100, 100)
-flows <- rep.int(-5, 10)
+flows <- matrix(-5, nrow = 10, ncol = 100)
 flowTiming <- 0.5
-adjustments <- rep.int(1, 10)
+adjustments <- matrix(1, nrow = 10, ncol = 100)
 adjustmentsTiming <- 1
-projectPot_cpp(pot, rtns, flows, flowTiming, adjustments, adjustmentsTiming)
+ans <- 
+  projectPot_cpp(pot, rtns, flows, flowTiming, adjustments, adjustmentsTiming)
 */
