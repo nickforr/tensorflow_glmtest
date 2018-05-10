@@ -24,7 +24,7 @@ microbenchmark({
       flowTiming = flowTiming, adjustments = adjustments, 
       adjustmentsTiming = adjustmentsTiming, outputAssetOnly = TRUE, 
       useCpp = FALSE)
-}, times = 100, unit = "ms")
+}, times = 10, unit = "s")
 
 # Rcpp project
 microbenchmark({
@@ -34,7 +34,7 @@ microbenchmark({
       flowTiming = flowTiming, adjustments = adjustments, 
       adjustmentsTiming = adjustmentsTiming, outputAssetOnly = TRUE, 
       useCpp = TRUE)
-}, times = 100, unit = "ms")
+}, times = 10, unit = "s")
 
 # Check output equal
 all.equal(rOutput[["assets"]], cppOutput[["assets"]])
