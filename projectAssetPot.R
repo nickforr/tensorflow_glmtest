@@ -172,7 +172,7 @@ projectPot_r <- function(pot, rtns, nsim, nproj, fullFlows, flowTiming,
     assetsPreFlow <- 
       if (adjustmentsTiming < flowTiming) {
         (startAssets * (1 + stepRtns) ^ adjustmentsTiming 
-          + stepAdjustments) ^ (flowTiming - adjustmentsTiming)
+          + stepAdjustments) * (1 + stepRtns) ^ (flowTiming - adjustmentsTiming)
       } else {
         startAssets * (1 + stepRtns) ^ flowTiming
       }
