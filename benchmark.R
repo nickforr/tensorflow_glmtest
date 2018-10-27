@@ -11,6 +11,7 @@ library(readr)
 library(dplyr)
 library(purrr)
 library(tidyr)
+library(forcats)
 library(tensorflow)
 
 
@@ -21,7 +22,8 @@ rawData <- readr::read_csv("raw_data_2008.csv.bz2")
 tidyData <- 
   rawData[1:4000000, ] %>% 
   tidyr::drop_na(ArrDelay) %>%
-  dplyr::mutate(IsArrDelayed = as.numeric(.data$ArrDelay > 0))
+  dplyr::mutate(IsArrDelayed = as.numeric(.data$ArrDelay > 0)) %>%
+  dplyr::mutate_if(is.character, as_factor)
 saveRDS(tidyData, "tidyData.RDS")
 rm(rawData)
 } else {
@@ -29,26 +31,24 @@ rm(rawData)
 }
 
 
-tidyData["Origin"] <- model.matrix(~Origin, data = tidyData)
-tidyData["Dest"] <- model.matrix(~Dest, data = tidyData)
+# tidyData["Origin"] <- model.matrix(~Origin, data = tidyData)
+# tidyData["Dest"] <- model.matrix(~Dest, data = tidyData)
 
 #split the dataset in two parts
-trainIndex = sample(1:nrow(tidyData), size = round(0.8*nrow(tidyData)), replace=FALSE)
-train = tidyData[ trainIndex, ]
+trainIndex = 
+  sample(1:nrow(tidyData), size = round(0.8 * nrow(tidyData)), replace = FALSE)
+train = tidyData[trainIndex, ]
 test  = tidyData[-trainIndex, ]
 
 # R attempt
 bench::mark({
-model <- 
-  glm(IsArrDelayed ~ Year + Month + DayofMonth + DayOfWeek + DepTime + AirTime + Origin + Dest + Distance,
-      data = train, family = binomial)
+  model <- 
+    glm(IsArrDelayed ~ Year + Month + DayofMonth + DayOfWeek + DepTime + 
+          AirTime + Origin + Dest + Distance,
+        data = train, family = binomial)
 }, iterations = 1)
 
 
-# tensorflow setup
-sess = tf$Session()
-hello <- tf$constant('Hello, TensorFlow!')
-sess$run(hello)
 
 
 

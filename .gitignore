@@ -4,3 +4,4 @@
 .Ruserdata
 *.csv.bz2
 *.RDS
+!vita_mock.RDS
