@@ -1,13 +1,14 @@
 
 library(keras)
+use_session_with_seed(1,disable_parallel_cpu = FALSE)
+
+data <- readRDS("vita_mock.RDS")
 
 
 
 # https://medium.com/@the1ju/simple-logistic-regression-using-keras-249e0cc9a970
 
 
-
-use_session_with_seed(1,disable_parallel_cpu = FALSE)
 data = iris[sample(nrow(iris)),]
 
 y = data[, "Species"]
