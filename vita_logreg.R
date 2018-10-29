@@ -8,30 +8,58 @@ library(purrr)
 library(tidyr)
 library(forcats)
 library(caret)
+library(h20)
 
 vita <- readRDS("vita_mock.RDS")
 
+wts <- vita$partialETRinitial
+vita$partialETRinitial <- NULL
+vita$Memberkey <- NULL
+
 cleanVita <- 
   as_data_frame(vita) %>%
-  mutate_if(is.character, as_factor) %>%
+  mutate_if(is.character, funs(as.numeric(as_factor(.)))) %>%
   mutate(DeadInYOE = as.integer(DeadInYOE))
 rm(vita)
 
-wts <- cleanVita$partialETRinitial
-cleanVita$partialETRinitial <- NULL
-cleanVita$Memberkey <- NULL
-
+# simplistic for baseline
 bench::mark({
   model <- 
     glm(DeadInYOE ~ ., data = cleanVita, family = binomial, weights = wts)
 }, iterations = 1)
+rm(model)
 
+
+# actual vita method
 bench::mark({
   model <- 
     glm(DeadInYOE ~ I(ageNearInYOE^(-1)) + I(ageNearInYOE^(-2)) + I(ageNearInYOE^(-3)) + I(ageNearInYOE^(-4)) + YOE.C + I(ageNearInYOE^(-4)):MortGroupRGPCV18 + I(ageNearInYOE^(-4)):salBandRGPCV18, 
     data = cleanVita, family = binomial, weights = wts)
 }, iterations = 1)
+rm(model)
 
+
+# try poly for vita method
+bench::mark({
+  model <- 
+    glm(DeadInYOE ~ poly(I(1 / ageNearInYOE), 4) + YOE.C + I(ageNearInYOE^(-4)):MortGroupRGPCV18 + I(ageNearInYOE^(-4)):salBandRGPCV18, 
+        data = cleanVita, family = binomial, weights = wts)
+}, iterations = 1)
+rm(model)
+
+#h2o
+bench::mark({
+  model <- 
+    h2o.(DeadInYOE ~ I(ageNearInYOE^(-1)) + I(ageNearInYOE^(-2)) + I(ageNearInYOE^(-3)) + I(ageNearInYOE^(-4)) + YOE.C + I(ageNearInYOE^(-4)):MortGroupRGPCV18 + I(ageNearInYOE^(-4)):salBandRGPCV18, 
+        data = cleanVita, family = binomial, weights = wts)
+}, iterations = 1)
+rm(model)
+
+
+
+
+
+# caret
 bench::mark({
   model <- 
     caret::train(DeadInYOE ~ I(ageNearInYOE^(-1)) + I(ageNearInYOE^(-2)) + I(ageNearInYOE^(-3)) + I(ageNearInYOE^(-4)) + YOE.C + I(ageNearInYOE^(-4)):MortGroupRGPCV18 + I(ageNearInYOE^(-4)):salBandRGPCV18, method = "glm", tuneLength = 1,
