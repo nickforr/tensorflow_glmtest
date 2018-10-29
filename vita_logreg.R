@@ -24,6 +24,12 @@ bench::mark({
     glm(DeadInYOE ~ ., data = cleanVita, family = binomial, weights = wts)
 }, iterations = 1)
 
+bench::mark({
+  model <- 
+    glm(DeadInYOE ~ I(ageNearInYOE^(-1)) + I(ageNearInYOE^(-2)) + I(ageNearInYOE^(-3)) + I(ageNearInYOE^(-4)) + YOE.C + I(ageNearInYOE^(-4)):MortGroupRGPCV18 + I(ageNearInYOE^(-4)):salBandRGPCV18, 
+    data = cleanVita, family = binomial, weights = wts)
+}, iterations = 1)
+
 
 
 
