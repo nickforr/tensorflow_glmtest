@@ -49,16 +49,16 @@ summary(model_h2oBase)
 rm(model_h2oBase, hCleanVita)
 h2o.shutdown()
 
-# h2o4gpu - couldn't get working...
+# h2o4gpu - not sure of method...
 x <- cleanVita[, -5]
 y <- cleanVita$DeadInYOE
 bench::mark({
   model_h2o4gpu <-
-    h2o4gpu::h2o4gpu.gradient_boosting_classifier() %>%
+    h2o4gpu::h2o4gpu.gradient_boosting_classifier(n_estimators = 10) %>%
     h2o4gpu::fit(x = x, y = y)
-}, iterations = 1)
+}, iterations = 5)
 summary(model_h2o4gpu)
-rm(model_h2o4gpu)
+rm(model_h2o4gpu, x, y)
 
 
 
