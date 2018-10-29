@@ -18,6 +18,7 @@ rm(vita)
 
 wts <- cleanVita$partialETRinitial
 cleanVita$partialETRinitial <- NULL
+cleanVita$Memberkey <- NULL
 
 bench::mark({
   model <- 
